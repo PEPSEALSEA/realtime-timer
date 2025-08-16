@@ -224,17 +224,7 @@
             border: 1px solid rgba(255,107,107,0.3);
         }
 
-        .sync-indicator {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            background: rgba(255,255,255,0.1);
-            opacity: 0.7;
-        }
-
+        /* Animations */
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -256,25 +246,26 @@
             50% { transform: scaleY(1.1); }
         }
 
+        /* Mobile responsive */
         @media (max-width: 768px) {
             h1 {
                 font-size: 2em;
             }
-
+            
             .timer-display {
                 font-size: 4em;
             }
-
+            
             .status-message {
                 font-size: 1.5em;
             }
-
+            
             .room-info,
             .last-update,
             .connection-status {
                 font-size: 0.8em;
             }
-
+            
             input[type="text"] {
                 width: 120px;
                 font-size: 20px;
@@ -285,11 +276,11 @@
             .timer-display {
                 font-size: 3em;
             }
-
+            
             .status-message {
                 font-size: 1.2em;
             }
-
+            
             .room-setup {
                 padding: 20px;
             }
@@ -300,13 +291,11 @@
     <div class="room-info" id="roomInfo" style="display: none;">
         <div>ห้อง: <span class="room-code" id="displayRoomCode">----</span></div>
     </div>
-
+    
     <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
-
+    
     <div class="connection-status" id="connectionStatus">🔄 กำลังเชื่อมต่อ...</div>
-
-    <div class="sync-indicator" id="syncIndicator">Local Timer</div>
-
+    
     <div class="container">
         <!-- Room Setup Section -->
         <div class="room-setup" id="roomSetup">
@@ -317,11 +306,11 @@
                 <div id="errorMessage" class="error-message" style="display: none;"></div>
             </div>
         </div>
-
+        
         <!-- Timer Display Section -->
         <div id="timerSection" style="display: none;">
             <h1>⏰ เวลาคงเหลือ</h1>
-
+            
             <div class="timer-container">
                 <div class="timer-display" id="timerDisplay">--:--</div>
                 <div class="progress-bar-container" id="progressContainer" style="display: none;">
@@ -331,217 +320,232 @@
             </div>
         </div>
     </div>
-
+    
     <div class="last-update" id="lastUpdate"></div>
 
     <script>
-
+        // ⚠️ เปลี่ยน URL นี้เป็น Web App URL ของคุณ
         const SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
-
+        
         let currentRoomCode = null;
-        let displayUpdateInterval;
+        let updateInterval;
         let syncInterval;
-        let lastSyncTime = new Date();
-        let syncInProgress = false;
-
+        let lastUpdateTime = new Date();
+        let currentAudio = null;
+        
+        // Local timer state
         let localTimer = {
             active: false,
-            startTime: null,        
-            totalDuration: 0,       
-            isTimerFinished: false  
+            endTime: null,
+            totalSeconds: 0,
+            lastSync: null
         };
-
+        
+        // Format room code input
         document.getElementById('roomCodeInput').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
             if (value.length > 4) value = value.substring(0, 4);
             e.target.value = value;
         });
-
+        
+        // Handle Enter key
         document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 joinRoom();
             }
         });
-
+        
         async function joinRoom() {
             const roomCode = document.getElementById('roomCodeInput').value;
-
+            
             if (!roomCode || roomCode.length !== 4) {
                 showError('กรุณาใส่รหัสห้อง 4 หลัก');
                 return;
             }
-
+            
             try {
                 hideError();
+                const response = await fetch(`${SCRIPT_URL}?action=checkRoom&roomCode=${roomCode}`);
+                const data = await response.json();
+                
                 currentRoomCode = roomCode;
                 document.getElementById('roomSetup').style.display = 'none';
                 document.getElementById('timerSection').style.display = 'block';
                 document.getElementById('roomInfo').style.display = 'block';
                 document.getElementById('displayRoomCode').textContent = roomCode;
-
-                startTimerSystem();
-
+                
+                // Start timer updates
+                startTimerUpdates();
+                
             } catch (error) {
                 showError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
                 console.error('Error:', error);
             }
         }
-
-        function startTimerSystem() {
-
-            clearInterval(displayUpdateInterval);
-            displayUpdateInterval = setInterval(updateLocalDisplay, 16); 
-
-            clearInterval(syncInterval);
-            syncInterval = setInterval(syncWithServer, 15000);
-
-            syncWithServer();
-
-            setInterval(updateLastSyncTime, 1000);
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
         }
-
+        
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function startTimerUpdates() {
+            clearInterval(updateInterval);
+            clearInterval(syncInterval);
+            
+            // อัพเดทหน้าจอทุกวินาที (local timer)
+            updateInterval = setInterval(updateDisplay, 1000);
+            
+            // Sync กับ server ทุก 10 วินาที
+            syncInterval = setInterval(syncWithServer, 10000);
+            
+            // Sync ครั้งแรกทันที
+            syncWithServer();
+            
+            setInterval(updateLastUpdateTime, 1000);
+        }
+        
+        // Sound alerts (using Web Audio API)
         function playBeep(frequency = 800, duration = 200) {
             try {
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
-
+                
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-
+                
                 oscillator.frequency.value = frequency;
                 oscillator.type = 'sine';
-
+                
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
-
+                
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + duration / 1000);
             } catch (e) {
                 console.log('Audio not supported');
             }
         }
-
+        
         async function syncWithServer() {
-            if (!currentRoomCode || syncInProgress) return;
-
-            syncInProgress = true;
-            document.getElementById('syncIndicator').textContent = 'Syncing...';
-
+            if (!currentRoomCode) return;
+            
             try {
                 const response = await fetch(`${SCRIPT_URL}?action=getTimer&roomCode=${currentRoomCode}&t=${Date.now()}`);
                 const data = await response.json();
-
-                lastSyncTime = new Date();
+                
+                lastUpdateTime = new Date();
                 updateConnectionStatus(true);
-
+                
                 if (data.active && data.timeLeft > 0) {
-
                     const serverEndTime = new Date(data.endTime);
                     const now = new Date();
-                    const actualTimeLeft = Math.max(0, Math.floor((serverEndTime - now) / 1000));
-
-                    localTimer.active = true;
-                    localTimer.startTime = new Date(now.getTime() - ((data.totalTime - actualTimeLeft) * 1000));
-                    localTimer.totalDuration = data.totalTime;
-                    localTimer.isTimerFinished = false;
-
-                    console.log(`Synced: ${actualTimeLeft}s remaining of ${data.totalTime}s total`);
-
-                } else if (data.totalTime > 0 && data.timeLeft === 0) {
-
-                    if (localTimer.active) {
-
-                        playFinishedSound();
+                    const serverTimeLeft = Math.max(0, Math.floor((serverEndTime - now) / 1000));
+                    
+                    // ตรวจสอบความแตกต่างของเวลา
+                    let timeDifference = 0;
+                    if (localTimer.active && localTimer.endTime) {
+                        const localTimeLeft = Math.max(0, Math.floor((localTimer.endTime - now) / 1000));
+                        timeDifference = Math.abs(serverTimeLeft - localTimeLeft);
                     }
-                    localTimer.active = false;
-                    localTimer.isTimerFinished = true;
-                    localTimer.totalDuration = data.totalTime;
-
+                    
+                    // ถ้าต่างกันมากกว่า 5 วินาที หรือ local timer ไม่ทำงาน ให้ sync
+                    if (!localTimer.active || timeDifference > 5) {
+                        console.log(`Syncing with server. Time difference: ${timeDifference}s`);
+                        localTimer.active = true;
+                        localTimer.endTime = serverEndTime;
+                        localTimer.totalSeconds = data.totalTime;
+                        localTimer.lastSync = now;
+                    }
                 } else {
-
-                    localTimer.active = false;
-                    localTimer.isTimerFinished = false;
-                    localTimer.totalDuration = 0;
+                    // Server บอกว่าหยุดแล้ว
+                    if (data.timeLeft === 0 && data.totalTime > 0) {
+                        // เวลาหมด
+                        localTimer.active = false;
+                        localTimer.endTime = null;
+                    } else {
+                        // ไม่มีการจับเวลา
+                        localTimer.active = false;
+                        localTimer.endTime = null;
+                        localTimer.totalSeconds = 0;
+                    }
                 }
-
+                
             } catch (error) {
                 console.error('Error syncing with server:', error);
                 updateConnectionStatus(false);
             }
-
-            syncInProgress = false;
-            document.getElementById('syncIndicator').textContent = 'Local Timer';
         }
-
-        function updateLocalDisplay() {
+        
+        function updateDisplay() {
             const timerDisplayDiv = document.getElementById('timerDisplay');
             const statusMessageDiv = document.getElementById('statusMessage');
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
-
-            if (localTimer.active && localTimer.startTime) {
+            
+            if (localTimer.active && localTimer.endTime) {
                 const now = new Date();
-                const elapsed = Math.floor((now - localTimer.startTime) / 1000);
-                const timeLeft = Math.max(0, localTimer.totalDuration - elapsed);
-
+                const timeLeft = Math.max(0, Math.floor((localTimer.endTime - now) / 1000));
+                
                 if (timeLeft > 0) {
-
+                    // แสดงเวลาจาก local timer
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
                     const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
+                    
                     timerDisplayDiv.textContent = timeStr;
-                    statusMessageDiv.textContent = `เวลาทั้งหมด ${Math.floor(localTimer.totalDuration / 60)} นาที`;
-
-                    const progressPercent = (timeLeft / localTimer.totalDuration) * 100;
+                    statusMessageDiv.textContent = `เวลาทั้งหมด ${Math.floor(localTimer.totalSeconds / 60)} นาที`;
+                    
+                    // Update progress bar
+                    const progressPercent = (timeLeft / localTimer.totalSeconds) * 100;
                     progressBar.style.width = progressPercent + '%';
                     progressContainer.style.display = 'block';
-
+                    
+                    // Change colors based on time left
                     timerDisplayDiv.className = 'timer-display';
                     progressBar.className = 'progress-bar';
-
+                    
                     if (timeLeft <= 10) {
+                        // Critical - last 10 seconds
                         timerDisplayDiv.className += ' critical';
                         progressBar.className += ' critical';
                         document.body.style.background = 'linear-gradient(45deg, #8B0000, #DC143C)';
-
-                        if (timeLeft <= 10 && timeLeft > 0) {
-                            playBeep(1200, 150);
-                        }
+                        
+                        // Beep every second in last 10 seconds
+                        playBeep(1200, 150);
                     } else if (timeLeft <= 60) {
+                        // Warning - last minute
                         timerDisplayDiv.className += ' warning';
                         progressBar.className += ' warning';
                         document.body.style.background = 'linear-gradient(45deg, #FF8C00, #FF6347)';
                     } else {
+                        // Normal state
                         document.body.style.background = 'linear-gradient(45deg, #1e3c72, #2a5298)';
                     }
-
+                    
                 } else {
-
-                    if (!localTimer.isTimerFinished) {
-                        playFinishedSound();
-                        localTimer.isTimerFinished = true;
-                    }
-                    localTimer.active = false;
-
+                    // หมดเวลาแล้ว
                     timerDisplayDiv.textContent = 'หมดเวลา!';
                     timerDisplayDiv.className = 'timer-display critical';
                     statusMessageDiv.textContent = '⏰ เวลาหมดแล้ว!';
                     document.body.style.background = 'linear-gradient(45deg, #8B0000, #DC143C)';
                     progressContainer.style.display = 'none';
+                    
+                    // Final beep sequence
+                    if (localTimer.active) {
+                        playBeep(400, 1000);
+                        setTimeout(() => playBeep(600, 1000), 500);
+                        setTimeout(() => playBeep(800, 1000), 1000);
+                        localTimer.active = false; // หยุดเสียงซ้ำ
+                    }
                 }
-
-            } else if (localTimer.isTimerFinished) {
-
-                timerDisplayDiv.textContent = 'หมดเวลา!';
-                timerDisplayDiv.className = 'timer-display critical';
-                statusMessageDiv.textContent = '⏰ เวลาหมดแล้ว!';
-                document.body.style.background = 'linear-gradient(45deg, #8B0000, #DC143C)';
-                progressContainer.style.display = 'none';
-
             } else {
-
+                // ไม่มีการจับเวลา
                 timerDisplayDiv.textContent = '--:--';
                 timerDisplayDiv.className = 'timer-display';
                 statusMessageDiv.textContent = 'ไม่มีการจับเวลา';
@@ -550,13 +554,7 @@
                 progressContainer.style.display = 'none';
             }
         }
-
-        function playFinishedSound() {
-            playBeep(400, 1000);
-            setTimeout(() => playBeep(600, 1000), 500);
-            setTimeout(() => playBeep(800, 1000), 1000);
-        }
-
+        
         function updateConnectionStatus(connected) {
             const statusDiv = document.getElementById('connectionStatus');
             if (connected) {
@@ -567,24 +565,14 @@
                 statusDiv.className = 'connection-status disconnected';
             }
         }
-
-        function updateLastSyncTime() {
+        
+        function updateLastUpdateTime() {
             const lastUpdateDiv = document.getElementById('lastUpdate');
             const now = new Date();
-            const timeDiff = Math.floor((now - lastSyncTime) / 1000);
-            lastUpdateDiv.textContent = `Sync ล่าสุด: ${timeDiff} วินาทีที่แล้ว`;
+            const timeDiff = Math.floor((now - lastUpdateTime) / 1000);
+            lastUpdateDiv.textContent = `อัพเดทล่าสุด: ${timeDiff} วินาทีที่แล้ว`;
         }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-
+        
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
@@ -594,28 +582,32 @@
                 document.exitFullscreen();
             }
         }
-
+        
+        // Handle page visibility change
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible' && currentRoomCode) {
-                syncWithServer(); 
+                syncWithServer(); // Sync when page becomes visible
             }
         });
-
+        
+        // Handle connection loss
         window.addEventListener('online', () => {
             if (currentRoomCode) syncWithServer();
         });
-
+        
         window.addEventListener('offline', () => {
             updateConnectionStatus(false);
         });
-
+        
+        // URL parameter handling for direct room access
         const urlParams = new URLSearchParams(window.location.search);
         const roomParam = urlParams.get('room');
         if (roomParam && roomParam.length === 4 && /^\d{4}$/.test(roomParam)) {
             document.getElementById('roomCodeInput').value = roomParam;
-            setTimeout(() => joinRoom(), 500);
+            setTimeout(() => joinRoom(), 500); // Small delay to ensure DOM is ready
         }
-
+        
+        // Initialize connection status
         updateConnectionStatus(false);
     </script>
 </body>
