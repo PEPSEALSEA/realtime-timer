@@ -409,7 +409,7 @@
         function copyDisplayLink() {
             const currentUrl = window.location.href;
             const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
-            const displayUrl = baseUrl + 'display.html?room=' + currentRoomCode;
+            const displayUrl = baseUrl + 'user.html?room=' + currentRoomCode;
 
             navigator.clipboard.writeText(displayUrl).then(() => {
                 showStatus('คัดลอกลิงก์หน้าแสดงแล้ว!', 'success');
