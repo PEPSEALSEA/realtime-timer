@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งเวลา - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .room-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .room-code-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.2em;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 10px;
+        }
+
+        .room-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            width: 120px;
+            padding: 12px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.2em;
+        }
+
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 12px;
+            font-size: 18px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: #667eea;
+        }
+
+        .timer-setup {
+            margin-bottom: 30px;
+        }
+
+        .time-input {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .quick-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .create-btn {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .create-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .join-btn {
+            background: #6f42c1;
+            color: white;
+        }
+
+        .join-btn:hover {
+            background: #5a32a3;
+            transform: translateY(-2px);
+        }
+
+        .start-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .start-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .stop-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .current-timer {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .timer-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .room-active {
+            background: #d1ecf1 !important;
+            border-color: #17a2b8 !important;
+        }
+
+        .disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .room-code-display {
+                font-size: 1.5em;
+            }
+
+            .time-input,
+            .room-input {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ ตั้งเวลา (Admin)</h1>
+
+        <!-- Room Management Section -->
+        <div class="room-section" id="roomSection">
+            <h3>🏠 จัดการห้อง</h3>
+            <div id="createRoomDiv">
+                <button class="create-btn" onclick="createRoom()">🆕 สร้างห้องใหม่</button>
+                <p style="margin: 10px 0; font-size: 0.9em; opacity: 0.7;">หรือ</p>
+                <div class="room-input">
+                    <input type="text" id="roomCodeInput" placeholder="0000" maxlength="4" pattern="[0-9]{4}">
+                    <button class="join-btn" onclick="joinRoom()">🔗 เข้าห้อง</button>
+                </div>
+            </div>
+
+            <div id="activeRoomDiv" style="display: none;">
+                <p>รหัสห้อง:</p>
+                <div class="room-code-display" id="currentRoomCode">----</div>
+                <button class="copy-btn" onclick="copyRoomCode()">📋 คัดลอก</button>
+                <button class="copy-btn" onclick="copyDisplayLink()" style="margin-left: 10px;">🔗 คัดลอกลิงก์หน้าแสดง</button>
+            </div>
+        </div>
+
+        <!-- Timer Setup Section -->
+        <div class="timer-setup disabled" id="timerSetup">
+            <div class="time-input">
+                <input type="number" id="minutes" value="5" min="1" max="120">
+                <label for="minutes">นาที</label>
+            </div>
+
+            <div class="quick-buttons">
+                <div class="quick-btn" onclick="setQuickTime(1)">1 นาที</div>
+                <div class="quick-btn" onclick="setQuickTime(3)">3 นาที</div>
+                <div class="quick-btn" onclick="setQuickTime(5)">5 นาที</div>
+                <div class="quick-btn" onclick="setQuickTime(10)">10 นาที</div>
+                <div class="quick-btn" onclick="setQuickTime(15)">15 นาที</div>
+                <div class="quick-btn" onclick="setQuickTime(30)">30 นาที</div>
+            </div>
+
+            <div class="control-buttons">
+                <button class="start-btn" onclick="startTimer()">🚀 เริ่มจับเวลา</button>
+                <button class="stop-btn" onclick="stopTimer()">⏹️ หยุดจับเวลา</button>
+            </div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="current-timer">
+            <h3>สถานะปัจจุบัน</h3>
+            <div id="currentStatus">เลือกหรือสร้างห้องก่อน</div>
+            <div id="timerDisplay" class="timer-display" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMT5l5j0hdJEuoAhVv67Ff9LNDYzLfKN3l_SPoBlNd4jiGOMtuW0SxE2kIBbRez3t3fQ/exec';
+
+        let currentRoomCode = null;
+        let timerInterval;
+
+        document.getElementById('roomCodeInput').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); 
+            if (value.length > 4) value = value.substring(0, 4);
+            e.target.value = value;
+        });
+
+        async function createRoom() {
+            try {
+                showStatus('กำลังสร้างห้อง...', 'success');
+                const response = await fetch(`${SCRIPT_URL}?action=createRoom`);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentRoomCode = data.roomCode;
+                    updateRoomDisplay();
+                    showStatus(`สร้างห้อง ${data.roomCode} แล้ว!`, 'success');
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถสร้างห้องได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        async function joinRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value;
+
+            if (!roomCode || roomCode.length !== 4) {
+                showStatus('กรุณาใส่รหัสห้อง 4 หลัก', 'error');
+                return;
+            }
+
+            try {
+                showStatus('กำลังตรวจสอบห้อง...', 'success');
+                const response = await fetch(`${SCRIPT_URL}?action=checkRoom&roomCode=${roomCode}`);
+                const data = await response.json();
+
+                currentRoomCode = roomCode;
+                updateRoomDisplay();
+
+                if (data.exists) {
+                    showStatus(`เข้าห้อง ${roomCode} แล้ว!`, 'success');
+                } else {
+                    showStatus(`เข้าห้อง ${roomCode} แล้ว (ห้องใหม่)`, 'success');
+                }
+
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function updateRoomDisplay() {
+            document.getElementById('createRoomDiv').style.display = 'none';
+            document.getElementById('activeRoomDiv').style.display = 'block';
+            document.getElementById('currentRoomCode').textContent = currentRoomCode;
+            document.getElementById('roomSection').classList.add('room-active');
+            document.getElementById('timerSetup').classList.remove('disabled');
+
+            startDisplayUpdate();
+        }
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(currentRoomCode).then(() => {
+                showStatus('คัดลอกรหัสห้องแล้ว!', 'success');
+            });
+        }
+
+        function copyDisplayLink() {
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+            const displayUrl = baseUrl + 'display.html?room=' + currentRoomCode;
+
+            navigator.clipboard.writeText(displayUrl).then(() => {
+                showStatus('คัดลอกลิงก์หน้าแสดงแล้ว!', 'success');
+            });
+        }
+
+        function setQuickTime(minutes) {
+            document.getElementById('minutes').value = minutes;
+        }
+
+        async function startTimer() {
+            if (!currentRoomCode) {
+                showStatus('กรุณาสร้างหรือเข้าห้องก่อน', 'error');
+                return;
+            }
+
+            const minutes = document.getElementById('minutes').value;
+
+            if (!minutes || minutes < 1) {
+                showStatus('กรุณาใส่เวลาที่ถูกต้อง', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=setTimer&roomCode=${currentRoomCode}&minutes=${minutes}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(`เริ่มจับเวลา ${minutes} นาที ในห้อง ${currentRoomCode}!`, 'success');
+                    startDisplayUpdate();
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถเริ่มจับเวลาได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        async function stopTimer() {
+            if (!currentRoomCode) {
+                showStatus('กรุณาสร้างหรือเข้าห้องก่อน', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=stopTimer&roomCode=${currentRoomCode}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus('หยุดจับเวลาแล้ว', 'success');
+                    clearInterval(timerInterval);
+                    updateCurrentStatus();
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถหยุดจับเวลาได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function startDisplayUpdate() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateCurrentStatus, 1000);
+            updateCurrentStatus();
+        }
+
+        async function updateCurrentStatus() {
+            if (!currentRoomCode) return;
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getTimer&roomCode=${currentRoomCode}`);
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('currentStatus');
+                const timerDisplayDiv = document.getElementById('timerDisplay');
+
+                if (data.active && data.timeLeft > 0) {
+                    const minutes = Math.floor(data.timeLeft / 60);
+                    const seconds = data.timeLeft % 60;
+                    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                    statusDiv.textContent = `กำลังจับเวลาในห้อง ${currentRoomCode}`;
+                    timerDisplayDiv.textContent = timeStr;
+                    timerDisplayDiv.style.display = 'block';
+                    timerDisplayDiv.style.color = data.timeLeft <= 60 ? '#dc3545' : '#333';
+                } else {
+                    statusDiv.textContent = `ห้อง ${currentRoomCode} - ไม่มีการจับเวลา`;
+                    timerDisplayDiv.style.display = 'none';
+                    clearInterval(timerInterval);
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room');
+        if (roomParam && roomParam.length === 4 && /^\d{4}$/.test(roomParam)) {
+            document.getElementById('roomCodeInput').value = roomParam;
+            joinRoom();
+        }
+    </script>
+</body>
+</html>

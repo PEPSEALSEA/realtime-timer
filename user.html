@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เวลาคงเหลือ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .room-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .room-code {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.2em;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: pulse 2s infinite;
+        }
+
+        .timer-container {
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .timer-display {
+            font-size: 8em;
+            font-weight: bold;
+            text-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.1em;
+        }
+
+        .timer-display.warning {
+            color: #ff6b6b;
+            animation: blink 1s infinite;
+        }
+
+        .timer-display.critical {
+            color: #ff3838;
+            animation: shake 0.5s infinite;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .progress-bar.warning {
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+        }
+
+        .progress-bar.critical {
+            background: linear-gradient(90deg, #f44336, #d32f2f);
+            animation: pulse-bar 1s infinite;
+        }
+
+        .status-message {
+            font-size: 2em;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .status-inactive {
+            font-size: 1.5em;
+            opacity: 0.7;
+        }
+
+        .room-setup {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .room-input {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 150px;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            outline: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.3em;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        input[type="text"]:focus {
+            border-color: rgba(255,255,255,0.8);
+            background: rgba(255,255,255,0.2);
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .last-update {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 0.9em;
+            opacity: 0.6;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .connection-status.connected {
+            background: rgba(76, 175, 80, 0.8);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(244, 67, 54, 0.8);
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255,107,107,0.2);
+            border-radius: 5px;
+            border: 1px solid rgba(255,107,107,0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes pulse-bar {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.1); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .timer-display {
+                font-size: 4em;
+            }
+
+            .status-message {
+                font-size: 1.5em;
+            }
+
+            .room-info,
+            .last-update,
+            .connection-status {
+                font-size: 0.8em;
+            }
+
+            input[type="text"] {
+                width: 120px;
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timer-display {
+                font-size: 3em;
+            }
+
+            .status-message {
+                font-size: 1.2em;
+            }
+
+            .room-setup {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="room-info" id="roomInfo" style="display: none;">
+        <div>ห้อง: <span class="room-code" id="displayRoomCode">----</span></div>
+    </div>
+
+    <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+
+    <div class="connection-status" id="connectionStatus">🔄 กำลังเชื่อมต่อ...</div>
+
+    <div class="container">
+        <!-- Room Setup Section -->
+        <div class="room-setup" id="roomSetup">
+            <h2 style="margin-bottom: 20px;">🏠 เข้าสู่ห้อง</h2>
+            <div class="room-input">
+                <input type="text" id="roomCodeInput" placeholder="0000" maxlength="4" pattern="[0-9]{4}">
+                <button onclick="joinRoom()">เข้าห้อง</button>
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Timer Display Section -->
+        <div id="timerSection" style="display: none;">
+            <h1>⏰ เวลาคงเหลือ</h1>
+
+            <div class="timer-container">
+                <div class="timer-display" id="timerDisplay">--:--</div>
+                <div class="progress-bar-container" id="progressContainer" style="display: none;">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="status-message" id="statusMessage">กำลังโหลด...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="last-update" id="lastUpdate"></div>
+
+    <script>
+
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMT5l5j0hdJEuoAhVv67Ff9LNDYzLfKN3l_SPoBlNd4jiGOMtuW0SxE2kIBbRez3t3fQ/exec';
+
+        let currentRoomCode = null;
+        let updateInterval;
+        let lastUpdateTime = new Date();
+        let currentAudio = null;
+
+        document.getElementById('roomCodeInput').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); 
+            if (value.length > 4) value = value.substring(0, 4);
+            e.target.value = value;
+        });
+
+        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        async function joinRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value;
+
+            if (!roomCode || roomCode.length !== 4) {
+                showError('กรุณาใส่รหัสห้อง 4 หลัก');
+                return;
+            }
+
+            try {
+                hideError();
+                const response = await fetch(`${SCRIPT_URL}?action=checkRoom&roomCode=${roomCode}`);
+                const data = await response.json();
+
+                currentRoomCode = roomCode;
+                document.getElementById('roomSetup').style.display = 'none';
+                document.getElementById('timerSection').style.display = 'block';
+                document.getElementById('roomInfo').style.display = 'block';
+                document.getElementById('displayRoomCode').textContent = roomCode;
+
+                startTimerUpdates();
+
+            } catch (error) {
+                showError('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                console.error('Error:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function startTimerUpdates() {
+            clearInterval(updateInterval);
+            updateTimer();
+            updateInterval = setInterval(updateTimer, 1000); 
+            setInterval(updateLastUpdateTime, 1000); 
+        }
+
+        function playBeep(frequency = 800, duration = 200) {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration / 1000);
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        async function updateTimer() {
+            if (!currentRoomCode) return;
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getTimer&roomCode=${currentRoomCode}&t=${Date.now()}`);
+                const data = await response.json();
+
+                lastUpdateTime = new Date();
+                updateConnectionStatus(true);
+
+                const timerDisplayDiv = document.getElementById('timerDisplay');
+                const statusMessageDiv = document.getElementById('statusMessage');
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+
+                if (data.active && data.timeLeft > 0) {
+
+                    const minutes = Math.floor(data.timeLeft / 60);
+                    const seconds = data.timeLeft % 60;
+                    const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                    timerDisplayDiv.textContent = timeStr;
+                    statusMessageDiv.textContent = `เวลาทั้งหมด ${Math.floor(data.totalTime / 60)} นาที`;
+
+                    const progressPercent = (data.timeLeft / data.totalTime) * 100;
+                    progressBar.style.width = progressPercent + '%';
+                    progressContainer.style.display = 'block';
+
+                    timerDisplayDiv.className = 'timer-display';
+                    progressBar.className = 'progress-bar';
+
+                    if (data.timeLeft <= 10) {
+
+                        timerDisplayDiv.className += ' critical';
+                        progressBar.className += ' critical';
+                        document.body.style.background = 'linear-gradient(45deg, #8B0000, #DC143C)';
+
+                        if (data.timeLeft <= 10 && data.timeLeft > 0) {
+                            playBeep(1200, 150);
+                        }
+                    } else if (data.timeLeft <= 60) {
+
+                        timerDisplayDiv.className += ' warning';
+                        progressBar.className += ' warning';
+                        document.body.style.background = 'linear-gradient(45deg, #FF8C00, #FF6347)';
+                    } else {
+
+                        document.body.style.background = 'linear-gradient(45deg, #1e3c72, #2a5298)';
+                    }
+
+                    if (data.timeLeft === 0) {
+                        playBeep(400, 1000); 
+                        setTimeout(() => playBeep(600, 1000), 500);
+                        setTimeout(() => playBeep(800, 1000), 1000);
+                    }
+
+                } else {
+
+                    if (data.error && data.error === 'Room not found') {
+                        timerDisplayDiv.textContent = 'ไม่พบห้อง';
+                        statusMessageDiv.textContent = `ห้อง ${currentRoomCode} ไม่มีอยู่`;
+                        statusMessageDiv.className = 'status-inactive';
+                    } else if (data.timeLeft === 0 && data.totalTime > 0) {
+                        timerDisplayDiv.textContent = 'หมดเวลา!';
+                        timerDisplayDiv.className = 'timer-display critical';
+                        statusMessageDiv.textContent = '⏰ เวลาหมดแล้ว!';
+                        document.body.style.background = 'linear-gradient(45deg, #8B0000, #DC143C)';
+                    } else {
+                        timerDisplayDiv.textContent = '--:--';
+                        timerDisplayDiv.className = 'timer-display';
+                        statusMessageDiv.textContent = 'ไม่มีการจับเวลา';
+                        statusMessageDiv.className = 'status-inactive';
+                        document.body.style.background = 'linear-gradient(45deg, #1e3c72, #2a5298)';
+                    }
+
+                    progressContainer.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Error updating timer:', error);
+                updateConnectionStatus(false);
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (connected) {
+                statusDiv.textContent = '🟢 เชื่อมต่อแล้ว';
+                statusDiv.className = 'connection-status connected';
+            } else {
+                statusDiv.textContent = '🔴 ขาดการเชื่อมต่อ';
+                statusDiv.className = 'connection-status disconnected';
+            }
+        }
+
+        function updateLastUpdateTime() {
+            const lastUpdateDiv = document.getElementById('lastUpdate');
+            const now = new Date();
+            const timeDiff = Math.floor((now - lastUpdateTime) / 1000);
+            lastUpdateDiv.textContent = `อัพเดทล่าสุด: ${timeDiff} วินาทีที่แล้ว`;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible' && currentRoomCode) {
+                updateTimer(); 
+            }
+        });
+
+        window.addEventListener('online', () => {
+            if (currentRoomCode) updateTimer();
+        });
+
+        window.addEventListener('offline', () => {
+            updateConnectionStatus(false);
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room');
+        if (roomParam && roomParam.length === 4 && /^\d{4}$/.test(roomParam)) {
+            document.getElementById('roomCodeInput').value = roomParam;
+            setTimeout(() => joinRoom(), 500); 
+        }
+
+        updateConnectionStatus(false);
+    </script>
+</body>
+</html>
