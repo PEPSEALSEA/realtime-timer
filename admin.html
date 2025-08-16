@@ -265,6 +265,24 @@
             font-size: 0.9em;
         }
 
+        .time-sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            color: #666;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .finish-time {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
         @media (max-width: 480px) {
             .container {
                 padding: 20px;
@@ -294,16 +312,20 @@
                 max-width: 200px;
             }
 
-            .sync-info {
+            .sync-info,
+            .time-sync-status {
                 position: relative;
                 bottom: auto;
                 right: auto;
+                top: auto;
                 margin-top: 20px;
             }
         }
     </style>
 </head>
 <body>
+    <div class="time-sync-status" id="timeSyncStatus">🕐 กำลังซิงค์เวลา...</div>
+
     <div class="container">
         <h1>ตั้งเวลา (Admin)</h1>
 
@@ -355,17 +377,16 @@
             <h3>สถานะปัจจุบัน</h3>
             <div id="currentStatus">เลือกหรือสร้างห้องก่อน</div>
             <div id="timerDisplay" class="timer-display" style="display: none;"></div>
+            <div id="finishTime" class="finish-time" style="display: none;"></div>
             <div id="localTimer" class="local-timer" style="display: none;"></div>
         </div>
     </div>
 
     <div class="sync-info" id="syncInfo">
-        <!-- <div>🔄 Admin Mode: Sync ทุก 10s</div> -->
         <div id="lastSyncTime">กำลังเชื่อมต่อ...</div>
     </div>
 
     <script>
-
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMT5l5j0hdJEuoAhVv67Ff9LNDYzLfKN3l_SPoBlNd4jiGOMtuW0SxE2kIBbRez3t3fQ/exec';
 
         let currentRoomCode = null;
@@ -374,11 +395,83 @@
         let displayInterval;
         let lastSyncTime = new Date();
 
+        let timeOffset = 0; 
+        let lastTimeSyncUpdate = null;
+        let timeSyncRetries = 0;
+        const MAX_TIME_SYNC_RETRIES = 3;
+
         let localTimer = {
             active: false,
             endTime: null,
             totalSeconds: 0
         };
+
+        function getCurrentTime() {
+            return new Date(Date.now() + timeOffset);
+        }
+
+        async function syncTimeWithAPI() {
+            const timeSyncStatusDiv = document.getElementById('timeSyncStatus');
+
+            try {
+                timeSyncStatusDiv.textContent = '🕐 ซิงค์...';
+
+                try {
+                    const response = await fetch(`${SCRIPT_URL}?action=getServerTime&t=${Date.now()}`, {
+                        signal: AbortSignal.timeout(5000) 
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const serverTime = new Date(data.serverTime);
+
+                        if (!isNaN(serverTime.getTime())) {
+                            const localTime = new Date();
+                            timeOffset = serverTime.getTime() - localTime.getTime();
+
+                            lastTimeSyncUpdate = localTime;
+                            timeSyncRetries = 0;
+
+                            console.log(`Google server sync: offset ${timeOffset}ms`);
+                            timeSyncStatusDiv.textContent = `🚀 Google ซิงค์ (${timeOffset > 0 ? '+' : ''}${Math.round(timeOffset/1000)}s)`;
+                            return true;
+                        }
+                    }
+                } catch (googleError) {
+                    console.warn('Google server time failed:', googleError);
+                }
+
+                const now = new Date();
+                timeOffset = 0; 
+                lastTimeSyncUpdate = now;
+                timeSyncRetries = 0;
+
+                console.log('Using device time');
+                timeSyncStatusDiv.textContent = '📱 ใช้เวลาเครื่อง';
+                return true;
+
+            } catch (error) {
+                console.error('Time sync failed:', error);
+
+                timeSyncRetries++;
+                if (timeSyncRetries < MAX_TIME_SYNC_RETRIES) {
+                    timeSyncStatusDiv.textContent = '🔄 ลอง...';
+                    setTimeout(() => syncTimeWithAPI(), 500); 
+                } else {
+                    timeSyncStatusDiv.textContent = '📱 เวลาเครื่อง';
+                    timeOffset = 0;
+                }
+                return false;
+            }
+        }
+
+        function startTimeSyncUpdates() {
+            setInterval(async () => {
+                if (lastTimeSyncUpdate && (Date.now() - lastTimeSyncUpdate.getTime()) > 300000) { 
+                    await syncTimeWithAPI();
+                }
+            }, 60000); 
+        }
 
         document.getElementById('roomCodeInput').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, ''); 
@@ -389,6 +482,11 @@
         async function createRoom() {
             try {
                 showStatus('กำลังสร้างห้อง...', 'success');
+
+                if (!lastTimeSyncUpdate) {
+                    await syncTimeWithAPI();
+                }
+
                 const response = await fetch(`${SCRIPT_URL}?action=createRoom`);
                 const data = await response.json();
 
@@ -415,6 +513,11 @@
 
             try {
                 showStatus('กำลังตรวจสอบห้อง...', 'success');
+
+                if (!lastTimeSyncUpdate) {
+                    await syncTimeWithAPI();
+                }
+
                 const response = await fetch(`${SCRIPT_URL}?action=checkRoom&roomCode=${roomCode}`);
                 const data = await response.json();
 
@@ -477,12 +580,25 @@
             }
 
             try {
+
+                if (!lastTimeSyncUpdate) {
+                    await syncTimeWithAPI();
+                }
+
                 const response = await fetch(`${SCRIPT_URL}?action=setTimer&roomCode=${currentRoomCode}&minutes=${minutes}`);
                 const data = await response.json();
 
                 if (data.success) {
                     showStatus(`เริ่มจับเวลา ${minutes} นาที ในห้อง ${currentRoomCode}!`, 'success');
 
+                    const now = getCurrentTime();
+                    const endTime = new Date(now.getTime() + (minutes * 60 * 1000));
+
+                    localTimer.active = true;
+                    localTimer.endTime = endTime;
+                    localTimer.totalSeconds = minutes * 60;
+
+                    updateLocalDisplay();
                     syncWithServer();
                 } else {
                     showStatus('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถเริ่มจับเวลาได้'), 'error');
@@ -535,12 +651,11 @@
             clearInterval(displayInterval);
 
             syncInterval = setInterval(syncWithServer, 10000);
-
             displayInterval = setInterval(updateLocalDisplay, 1000);
-
             setInterval(updateSyncInfo, 1000);
 
             syncWithServer();
+            startTimeSyncUpdates();
         }
 
         async function syncWithServer() {
@@ -550,22 +665,28 @@
                 const response = await fetch(`${SCRIPT_URL}?action=getTimer&roomCode=${currentRoomCode}&t=${Date.now()}`);
                 const data = await response.json();
 
-                lastSyncTime = new Date();
+                lastSyncTime = getCurrentTime(); 
 
                 if (data.active && data.timeLeft > 0) {
-
                     const serverEndTime = new Date(data.endTime);
-                    localTimer.active = true;
-                    localTimer.endTime = serverEndTime;
-                    localTimer.totalSeconds = data.totalTime;
+                    const now = getCurrentTime(); 
+                    const serverTimeLeft = Math.max(0, Math.floor((serverEndTime - now) / 1000));
 
-                    console.log('Synced with server - Timer active');
+                    let timeDifference = 0;
+                    if (localTimer.active && localTimer.endTime) {
+                        const localTimeLeft = Math.max(0, Math.floor((localTimer.endTime - now) / 1000));
+                        timeDifference = Math.abs(serverTimeLeft - localTimeLeft);
+                    }
+
+                    if (!localTimer.active || timeDifference > 3) { 
+                        console.log(`Syncing with server. Time difference: ${timeDifference}s`);
+                        localTimer.active = true;
+                        localTimer.endTime = serverEndTime;
+                        localTimer.totalSeconds = data.totalTime;
+                    }
                 } else {
-
                     localTimer.active = false;
                     localTimer.endTime = null;
-
-                    console.log('Synced with server - Timer inactive');
                 }
 
                 updateLocalDisplay();
@@ -579,9 +700,10 @@
             const statusDiv = document.getElementById('currentStatus');
             const timerDisplayDiv = document.getElementById('timerDisplay');
             const localTimerDiv = document.getElementById('localTimer');
+            const finishTimeDiv = document.getElementById('finishTime');
 
             if (localTimer.active && localTimer.endTime) {
-                const now = new Date();
+                const now = getCurrentTime(); 
                 const timeLeft = Math.max(0, Math.floor((localTimer.endTime - now) / 1000));
 
                 if (timeLeft > 0) {
@@ -594,29 +716,35 @@
                     timerDisplayDiv.style.display = 'block';
                     timerDisplayDiv.style.color = timeLeft <= 60 ? '#dc3545' : '#333';
 
-                    localTimerDiv.textContent = `Local: ${timeStr}`;
+                    const finishTime = localTimer.endTime;
+                    finishTimeDiv.textContent = `จะเสร็จ: ${finishTime.toLocaleTimeString('th-TH')}`;
+                    finishTimeDiv.style.display = 'block';
+
+                    localTimerDiv.textContent = `Local: ${timeStr} (จบ: ${finishTime.toLocaleTimeString('th-TH')})`;
                     localTimerDiv.style.display = 'block';
                 } else {
-
                     statusDiv.textContent = `ห้อง ${currentRoomCode} - หมดเวลาแล้ว`;
                     timerDisplayDiv.textContent = '00:00';
                     timerDisplayDiv.style.display = 'block';
                     timerDisplayDiv.style.color = '#dc3545';
 
+                    finishTimeDiv.textContent = 'หมดเวลาแล้ว!';
+                    finishTimeDiv.style.display = 'block';
+
                     localTimerDiv.textContent = 'Local: หมดเวลา';
                     localTimerDiv.style.display = 'block';
                 }
             } else {
-
                 statusDiv.textContent = currentRoomCode ? `ห้อง ${currentRoomCode} - ไม่มีการจับเวลา` : 'เลือกหรือสร้างห้องก่อน';
                 timerDisplayDiv.style.display = 'none';
+                finishTimeDiv.style.display = 'none';
                 localTimerDiv.style.display = 'none';
             }
         }
 
         function updateSyncInfo() {
             const syncInfoDiv = document.getElementById('lastSyncTime');
-            const now = new Date();
+            const now = getCurrentTime(); 
             const timeDiff = Math.floor((now - lastSyncTime) / 1000);
             syncInfoDiv.textContent = `Sync ล่าสุด: ${timeDiff}s ที่แล้ว`;
         }
@@ -627,11 +755,25 @@
             }
         });
 
+        window.addEventListener('online', () => {
+            if (currentRoomCode) {
+                syncWithServer();
+
+                if (lastTimeSyncUpdate && (Date.now() - lastTimeSyncUpdate.getTime()) > 60000) {
+                    syncTimeWithAPI();
+                }
+            }
+        });
+
+        window.addEventListener('load', () => {
+            syncTimeWithAPI();
+        });
+
         const urlParams = new URLSearchParams(window.location.search);
         const roomParam = urlParams.get('room');
         if (roomParam && roomParam.length === 4 && /^\d{4}$/.test(roomParam)) {
             document.getElementById('roomCodeInput').value = roomParam;
-            joinRoom();
+            setTimeout(() => joinRoom(), 1000); 
         }
     </script>
 </body>
