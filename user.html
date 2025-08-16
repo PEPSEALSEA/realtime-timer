@@ -437,29 +437,39 @@
 
                 if (data.active && data.timeLeft > 0) {
 
-                    const serverEndTime = new Date(data.endTime);
-                    const now = new Date();
-                    const actualTimeLeft = Math.max(0, Math.floor((serverEndTime - now) / 1000));
+                    if (!localTimer.active) {
 
-                    localTimer.active = true;
-                    localTimer.startTime = new Date(now.getTime() - ((data.totalTime - actualTimeLeft) * 1000));
-                    localTimer.totalDuration = data.totalTime;
-                    localTimer.isTimerFinished = false;
+                        const serverEndTime = new Date(data.endTime);
+                        const now = new Date();
+                        const actualTimeLeft = Math.max(0, Math.floor((serverEndTime - now) / 1000));
 
-                    console.log(`Synced: ${actualTimeLeft}s remaining of ${data.totalTime}s total`);
+                        localTimer.active = true;
+                        localTimer.startTime = new Date(now.getTime() - ((data.totalTime - actualTimeLeft) * 1000));
+                        localTimer.totalDuration = data.totalTime;
+                        localTimer.isTimerFinished = false;
+
+                        console.log(`Timer started: ${actualTimeLeft}s remaining of ${data.totalTime}s total`);
+                    } else {
+
+                        console.log(`Timer check: Server has ${data.timeLeft}s, keeping local timer`);
+                    }
 
                 } else if (data.totalTime > 0 && data.timeLeft === 0) {
 
                     if (localTimer.active) {
 
                         playFinishedSound();
+                        localTimer.active = false;
+                        localTimer.isTimerFinished = true;
+                        localTimer.totalDuration = data.totalTime;
+                        console.log(`Timer finished via server`);
                     }
-                    localTimer.active = false;
-                    localTimer.isTimerFinished = true;
-                    localTimer.totalDuration = data.totalTime;
 
                 } else {
 
+                    if (localTimer.active || localTimer.isTimerFinished) {
+                        console.log(`Timer stopped/reset via server`);
+                    }
                     localTimer.active = false;
                     localTimer.isTimerFinished = false;
                     localTimer.totalDuration = 0;
