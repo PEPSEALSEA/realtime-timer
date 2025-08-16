@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เวลาคงเหลือ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,7 +13,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Mali', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(45deg, #1e3c72, #2a5298);
             min-height: 100vh;
             display: flex;
@@ -305,8 +306,6 @@
 
     <div class="connection-status" id="connectionStatus">🔄 กำลังเชื่อมต่อ...</div>
 
-    <div class="sync-indicator" id="syncIndicator">ไม่มีการจับเวลา: Sync ทุก 1s</div>
-
     <div class="container">
         <!-- Room Setup Section -->
         <div class="room-setup" id="roomSetup">
@@ -417,13 +416,6 @@
         function setSyncInterval(intervalMs) {
             clearInterval(syncInterval);
             syncInterval = setInterval(syncWithServer, intervalMs);
-
-            const indicator = document.getElementById('syncIndicator');
-            if (intervalMs === 1000) {
-                indicator.textContent = 'ไม่มีการจับเวลา: Sync ทุก 1s';
-            } else {
-                indicator.textContent = 'กำลังจับเวลา: Sync ทุก 10s';
-            }
         }
 
         function playBeep(frequency = 800, duration = 200) {
