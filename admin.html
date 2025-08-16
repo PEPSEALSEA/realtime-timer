@@ -305,11 +305,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>⏰ ตั้งเวลา (Admin)</h1>
+        <h1>ตั้งเวลา (Admin)</h1>
 
         <!-- Room Management Section -->
         <div class="room-section" id="roomSection">
-            <h3>🏠 จัดการห้อง</h3>
+            <h3>จัดการห้อง</h3>
             <div id="createRoomDiv">
                 <button class="create-btn" onclick="createRoom()">🆕 สร้างห้องใหม่</button>
                 <p style="margin: 10px 0; font-size: 0.9em; opacity: 0.7;">หรือ</p>
@@ -323,7 +323,7 @@
                 <p>รหัสห้อง:</p>
                 <div class="room-code-display" id="currentRoomCode">----</div>
                 <button class="copy-btn" onclick="copyRoomCode()">📋 คัดลอก</button>
-                <button class="copy-btn" onclick="copyDisplayLink()" style="margin-left: 10px;">🔗 คัดลอกลิงก์หน้าแสดง</button>
+                <button class="copy-btn" onclick="copyDisplayLink()" style="margin-left: 10px;">🔗 คัดลอกลิงก์</button>
             </div>
         </div>
 
@@ -344,8 +344,8 @@
             </div>
 
             <div class="control-buttons">
-                <button class="start-btn" onclick="startTimer()">🚀 เริ่มจับเวลา</button>
-                <button class="stop-btn" onclick="stopTimer()">⏹️ หยุดจับเวลา</button>
+                <button class="start-btn" onclick="startTimer()">เริ่มจับเวลา</button>
+                <button class="stop-btn" onclick="stopTimer()">หยุดจับเวลา</button>
             </div>
         </div>
 
@@ -360,7 +360,7 @@
     </div>
 
     <div class="sync-info" id="syncInfo">
-        <div>🔄 Admin Mode: Sync ทุก 10s</div>
+        <!-- <div>🔄 Admin Mode: Sync ทุก 10s</div> -->
         <div id="lastSyncTime">กำลังเชื่อมต่อ...</div>
     </div>
 
@@ -455,7 +455,7 @@
             const displayUrl = baseUrl + 'user.html?room=' + currentRoomCode;
 
             navigator.clipboard.writeText(displayUrl).then(() => {
-                showStatus('คัดลอกลิงก์หน้าแสดงแล้ว!', 'success');
+                showStatus('คัดลอกลิงก์แล้ว!', 'success');
             });
         }
 
