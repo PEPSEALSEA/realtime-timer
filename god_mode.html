@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>God Mode - ระบบจัดการห้องทั้งหมด</title>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mali', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .god-mode-title {
+            font-size: 2.5em;
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .subtitle {
+            color: #feca57;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #feca57;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #ddd;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-box {
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .room-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .room-card.running {
+            border-color: #2ecc71;
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .room-card.expired {
+            border-color: #e74c3c;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
+        }
+
+        .room-card.inactive {
+            border-color: #95a5a6;
+            opacity: 0.7;
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .room-code {
+            font-size: 1.5em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #feca57;
+        }
+
+        .room-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status-running {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .status-expired {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .status-inactive {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .room-info {
+            margin-bottom: 15px;
+        }
+
+        .room-timer {
+            font-size: 1.8em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            margin: 10px 0;
+            color: #ff6b6b;
+        }
+
+        .room-timer.running {
+            color: #2ecc71;
+        }
+
+        .room-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-stop {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-add {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .btn-subtract {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-set {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-refresh {
+            background: #1abc9c;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 10px;
+        }
+
+        .btn-logout {
+            background: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            border-radius: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .small-input {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #fff;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            z-index: 1001;
+            max-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .status-success {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .status-error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .room-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .room-info-label {
+            color: #bbb;
+        }
+
+        .room-info-value {
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .rooms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .btn-logout {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 20px;
+            }
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        input[type="password"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <h1 class="god-mode-title">⚡ GOD MODE ⚡</h1>
+            <p class="subtitle">ระบบจัดการห้องทั้งหมด</p>
+            <input type="password" id="passwordInput" placeholder="ใส่รหัสผ่าน" maxlength="20">
+            <button class="btn btn-set" onclick="login()" style="width: 100%; padding: 15px;">🔓 เข้าสู่ระบบ</button>
+            <div id="loginStatus" style="margin-top: 15px; font-size: 0.9em; color: #ff6b6b;"></div>
+        </div>
+    </div>
+
+    <!-- Main Screen -->
+    <div id="mainScreen" style="display: none;">
+        <button class="btn-logout" onclick="logout()">🚪 ออกจากระบบ</button>
+
+        <div class="main-container">
+            <div class="header">
+                <h1 class="god-mode-title">⚡ GOD MODE ⚡</h1>
+                <p class="subtitle">ระบบจัดการห้องทั้งหมด - คุณสามารถควบคุมทุกอย่างได้!</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalRooms">0</div>
+                    <div class="stat-label">ห้องทั้งหมด</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeRooms">0</div>
+                    <div class="stat-label">ห้องที่ทำงาน</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="expiredRooms">0</div>
+                    <div class="stat-label">ห้องหมดเวลา</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="inactiveRooms">0</div>
+                    <div class="stat-label">ห้องไม่ทำงาน</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <input type="text" class="search-box" id="searchBox" placeholder="🔍 ค้นหารหัสห้อง..."
+                    onkeyup="filterRooms()">
+                <button class="btn-refresh" onclick="loadAllRooms()">🔄 รีเฟรช</button>
+            </div>
+
+            <div class="rooms-grid" id="roomsContainer">
+                <!-- Rooms will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="confirmTitle">ยืนยันการดำเนินการ</h2>
+            <p id="confirmMessage">คุณแน่ใจหรือไม่?</p>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-delete" id="confirmButton">ยืนยัน</button>
+                <button class="btn" onclick="closeModal()"
+                    style="background: #95a5a6; color: white; margin-left: 10px;">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMT5l5j0hdJEuoAhVv67Ff9LNDYzLfKN3l_SPoBlNd4jiGOMtuW0SxE2kIBbRez3t3fQ/exec';
+        let allRooms = [];
+        let refreshInterval;
+
+        async function login() {
+            const password = document.getElementById('passwordInput').value;
+            const loginStatus = document.getElementById('loginStatus');
+
+            if (!password) {
+                loginStatus.textContent = 'กรุณาใส่รหัสผ่าน';
+                return;
+            }
+
+            try {
+                loginStatus.textContent = 'กำลังตรวจสอบ...';
+
+                const response = await fetch(`${SCRIPT_URL}?action=godModeAuth&password=${encodeURIComponent(password)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('mainScreen').style.display = 'block';
+                    loadAllRooms();
+                    startAutoRefresh();
+                } else {
+                    loginStatus.textContent = 'รหัสผ่านไม่ถูกต้อง';
+                    document.getElementById('passwordInput').value = '';
+                }
+            } catch (error) {
+                loginStatus.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                console.error('Login error:', error);
+            }
+        }
+
+        function logout() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('mainScreen').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('loginStatus').textContent = '';
+        }
+
+        async function loadAllRooms() {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getAllRooms&t=${Date.now()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    allRooms = data.rooms;
+                    updateStats();
+                    renderRooms();
+                } else {
+                    showStatus('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Load rooms error:', error);
+            }
+        }
+
+        function updateStats() {
+            const totalRooms = allRooms.length;
+            const activeRooms = allRooms.filter(room => room.status === 'Running').length;
+            const expiredRooms = allRooms.filter(room => room.status === 'Expired').length;
+            const inactiveRooms = allRooms.filter(room => room.status === 'Inactive').length;
+
+            document.getElementById('totalRooms').textContent = totalRooms;
+            document.getElementById('activeRooms').textContent = activeRooms;
+            document.getElementById('expiredRooms').textContent = expiredRooms;
+            document.getElementById('inactiveRooms').textContent = inactiveRooms;
+        }
+
+        function renderRooms() {
+            const container = document.getElementById('roomsContainer');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+
+            const filteredRooms = allRooms.filter(room =>
+                String(room.roomCode || '').toLowerCase().includes(searchTerm)
+            );
+
+            if (filteredRooms.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #bbb; grid-column: 1/-1; padding: 40px;">ไม่พบห้องในระบบ</div>';
+                return;
+            }
+
+            container.innerHTML = filteredRooms.map(room => `
+                <div class="room-card ${room.status.toLowerCase()}">
+                    <div class="room-header">
+                        <div class="room-code">${room.roomCode || 'N/A'}</div>
+                        <div class="room-status status-${room.status.toLowerCase()}">${getStatusText(room.status)}</div>
+                    </div>
+
+                    ${room.timeLeft > 0 ? `
+                        <div class="room-timer running">${formatTime(room.timeLeft)}</div>
+                    ` : room.status === 'Expired' ? `
+                        <div class="room-timer">⏰ หมดเวลาแล้ว</div>
+                    ` : `
+                        <div class="room-timer">⏸️ ไม่ทำงาน</div>
+                    `}
+
+                    <div class="room-info">
+                        <div class="room-info-item">
+                            <span class="room-info-label">เวลารวม:</span>
+                            <span class="room-info-value">${room.duration || 0} นาที</span>
+                        </div>
+                        ${room.startTime ? `
+                            <div class="room-info-item">
+                                <span class="room-info-label">เริ่ม:</span>
+                                <span class="room-info-value">${formatDateTime(room.startTime)}</span>
+                            </div>
+                        ` : ''}
+                        ${room.endTime && room.status === 'Running' ? `
+                            <div class="room-info-item">
+                                <span class="room-info-label">จบ:</span>
+                                <span class="room-info-value">${formatDateTime(room.endTime)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="room-info-item">
+                            <span class="room-info-label">อัปเดตล่าสุด:</span>
+                            <span class="room-info-value">${room.lastUpdate ? formatDateTime(room.lastUpdate) : 'ไม่ทราบ'}</span>
+                        </div>
+                    </div>
+
+                    <div class="room-actions">
+                        <button class="btn btn-delete" onclick="confirmDelete('${room.roomCode}')">🗑️ ลบ</button>
+                        ${room.status === 'Running' ? `
+                            <button class="btn btn-stop" onclick="stopRoom('${room.roomCode}')">⏹️ หยุด</button>
+                        ` : ''}
+                    </div>
+
+                    <div class="input-group">
+                        <input type="number" class="small-input" id="minutes-${room.roomCode}" min="1" max="120" value="5" placeholder="นาที">
+                        <button class="btn btn-add" onclick="modifyTimer('${room.roomCode}', 'add')">+</button>
+                        <button class="btn btn-subtract" onclick="modifyTimer('${room.roomCode}', 'subtract')">-</button>
+                        <button class="btn btn-set" onclick="modifyTimer('${room.roomCode}', 'set')">ตั้ง</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterRooms() {
+            renderRooms();
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatDateTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'Running': return '🔥 ทำงาน';
+                case 'Expired': return '⏰ หมดเวลา';
+                case 'Inactive': return '⏸️ หยุด';
+                default: return status;
+            }
+        }
+
+        function confirmDelete(roomCode) {
+            document.getElementById('confirmTitle').textContent = 'ยืนยันการลบห้อง';
+            document.getElementById('confirmMessage').textContent = `คุณต้องการลบห้อง ${roomCode} หรือไม่?`;
+            document.getElementById('confirmButton').onclick = () => deleteRoom(roomCode);
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        async function deleteRoom(roomCode) {
+            try {
+                closeModal();
+                const response = await fetch(`${SCRIPT_URL}?action=deleteRoom&roomCode=${roomCode}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(`ลบห้อง ${roomCode} แล้ว`, 'success');
+                    loadAllRooms();
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถลบห้องได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Delete room error:', error);
+            }
+        }
+
+        async function stopRoom(roomCode) {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=stopTimer&roomCode=${roomCode}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(`หยุดห้อง ${roomCode} แล้ว`, 'success');
+                    loadAllRooms();
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถหยุดห้องได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Stop room error:', error);
+            }
+        }
+
+        async function modifyTimer(roomCode, action) {
+            const minutesInput = document.getElementById(`minutes-${roomCode}`);
+            const minutes = parseInt(minutesInput.value);
+
+            if (!minutes || minutes < 1) {
+                showStatus('กรุณาใส่จำนวนนาทีที่ถูกต้อง', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=modifyTimer&roomCode=${roomCode}&minutes=${minutes}&timerAction=${action}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    loadAllRooms();
+                } else {
+                    showStatus('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถแก้ไขเวลาได้'), 'error');
+                }
+            } catch (error) {
+                showStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+                console.error('Modify timer error:', error);
+            }
+        }
+
+        function showStatus(message, type) {
+
+            const existingMessages = document.querySelectorAll('.status-message');
+            existingMessages.forEach(msg => msg.remove());
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+            document.body.appendChild(statusDiv);
+
+            setTimeout(() => {
+                if (statusDiv.parentNode) {
+                    statusDiv.parentNode.removeChild(statusDiv);
+                }
+            }, 5000);
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                loadAllRooms();
+            }, 10000);
+        }
+
+        document.getElementById('passwordInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+
+        window.onclick = function (event) {
+            const modal = document.getElementById('confirmModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        document.querySelector('.close').onclick = closeModal;
+
+        window.addEventListener('online', () => {
+            showStatus('กลับมาออนไลน์แล้ว', 'success');
+            loadAllRooms();
+        });
+
+        window.addEventListener('offline', () => {
+            showStatus('การเชื่อมต่อขัดข้อง', 'error');
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            document.getElementById('passwordInput').focus();
+        });
+    </script>
+</body>
+
+</html>
